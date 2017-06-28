@@ -13,7 +13,7 @@ Install django-green-grove using pip::
     pip install django-green-grove
 
 
-Add the following to your `settings.py` module:::
+Add the following to your ``settings.py`` module::
 
     BACKUP_BUCKET_AWS_ACCESS_KEY_ID = ''
     BACKUP_BUCKET_AWS_SECRET_ACCESS_KEY = '
@@ -24,7 +24,7 @@ Add the following to your `settings.py` module:::
 Backup Project
 --------------
 
-We suggest to use this management command as a cron tab:::
+We suggest to use this management command as a cron tab::
 
     python manage.py backup_project
 
