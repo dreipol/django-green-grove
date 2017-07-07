@@ -116,10 +116,14 @@ class Command(BaseCommand):
         for source_key in source_bucket.list():
             new_key_name = '{sub_directory}/{name}'.format(sub_directory=destination_sub_directory,
                                                            name=source_key.key)
-            destination_bucket.copy_key(
-                new_key_name=new_key_name,
-                src_bucket_name=source_bucket.name,
-                src_key_name=source_key.key
-            )
+
+            if source_key.size:  # Some keys have no size
+                destination_bucket.copy_key(
+                    new_key_name=new_key_name,
+                    src_bucket_name=source_bucket.name,
+                    src_key_name=source_key.key
+                )
+            else:
+                logger.error('The bucket key "{key}" has no size and was ignored.'.format(key=source_key.key))
 
         logger.info('Bucket data successfully copied to the target storage backend.')
