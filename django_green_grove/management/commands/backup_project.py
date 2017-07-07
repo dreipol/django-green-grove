@@ -27,12 +27,9 @@ class Command(BaseCommand):
         self.prepare_backup()
         self.create_pgpass()
 
-        try:
-            self.back_up_database(backup_storage=backup_storage, temp_backup_path=self.temp_backup_path)
-            self.back_up_bucket()
-            logger.info('backup_project_success: Successfully backed up database and bucket.')
-        except:
-            pass
+        self.back_up_database(backup_storage=backup_storage, temp_backup_path=self.temp_backup_path)
+        self.back_up_bucket()
+        logger.info('backup_project_success: Successfully backed up database and bucket.')
 
         self.cleanup_backup()
 
@@ -113,17 +110,28 @@ class Command(BaseCommand):
         destination_sub_directory = '{location}/{timestamp}'.format(location=settings.BACKUP_BUCKET_LOCATION,
                                                                     timestamp=self.timestamp)
 
-        for source_key in source_bucket.list():
-            new_key_name = '{sub_directory}/{name}'.format(sub_directory=destination_sub_directory,
-                                                           name=source_key.key)
+        try:
+            key_list = [source_key.key for source_key in source_bucket.list() if source_key.size]
+        except ValueError:
+            raise ValueError('The backup task was aborted because of some bucket keys with no size. Set '
+                             '`DJANGO_GREEN_GROVE_EMPTY_S3_KEYS` in your settings to get a list of the keys.')
 
-            if source_key.size:  # Some keys have no size
-                destination_bucket.copy_key(
-                    new_key_name=new_key_name,
-                    src_bucket_name=source_bucket.name,
-                    src_key_name=source_key.key
-                )
-            else:
-                logger.error('The bucket key "{key}" has no size and was ignored.'.format(key=source_key.key))
+        if hasattr(settings, 'DJANGO_GREEN_GROVE_EMPTY_S3_KEYS'):
+            error_message = 'Some bucket keys were ignored during the backup task because they have no size'
+            try:
+                empty_keys = [source_key.key for source_key in source_bucket.list() if not source_key.size]
+                error_message += ': %s' % ', '.join(empty_keys)
+            except:
+                error_message += '.'
+
+            logger.error(error_message)
+
+        for key in key_list:
+            new_key_name = '{sub_directory}/{name}'.format(sub_directory=destination_sub_directory, name=key)
+            destination_bucket.copy_key(
+                new_key_name=new_key_name,
+                src_bucket_name=source_bucket.name,
+                src_key_name=key
+            )
 
         logger.info('Bucket data successfully copied to the target storage backend.')
