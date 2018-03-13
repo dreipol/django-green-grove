@@ -127,6 +127,7 @@ class Command(BaseCommand):
             logger.error(error_message)
 
         for key in key_list:
+            logger.info(key)
             new_key_name = '{sub_directory}/{name}'.format(sub_directory=destination_sub_directory, name=key)
             destination_bucket.copy_key(
                 new_key_name=new_key_name,
